@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../services/translation_service.dart'; // Проверьте, что путь верный!
 
 class TranslationScreen extends StatefulWidget {
   final String languageName;
   final String languageCode;
 
   const TranslationScreen({
-    super.key, 
-    required this.languageName, 
+    super.key,
+    required this.languageName,
     required this.languageCode,
   });
 
@@ -16,12 +17,15 @@ class TranslationScreen extends StatefulWidget {
 
 class _TranslationScreenState extends State<TranslationScreen> {
   final TextEditingController _controller = TextEditingController();
+  final TranslationService _apiService = TranslationService();
+  
   String _result = "Здесь явится мудрость предков...";
   bool _isLoading = false;
 
+  // ГЛАВНАЯ ФУНКЦИЯ ПЕРЕВОДА
   Future<void> _translate() async {
     final text = _controller.text.trim();
-    
+
     if (text.isEmpty) {
       setState(() {
         _result = "Напиши фразу для перевода...";
@@ -34,73 +38,27 @@ class _TranslationScreenState extends State<TranslationScreen> {
       _result = "Призываю духов древности...";
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Отправляем запрос в Gemini через наш сервис
+      final aiResponse = await _apiService.translateText(
+        text,
+        widget.languageName,
+      );
 
-    String translatedText;
-    // Определяем логику перевода по коду языка
-    if (widget.languageCode == 'latin') {
-      translatedText = _translateToLatin(text);
-    } else if (widget.languageCode == 'greek') {
-      translatedText = _translateToGreek(text);
-    } else if (widget.languageCode == 'egyptian') {
-      translatedText = _translateToEgyptian(text);
-    } else {
-      translatedText = "Неизвестный язык";
+      setState(() {
+        _isLoading = false;
+        _result = aiResponse; // Выводим реальный ответ ИИ
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _result = "Оракул столкнулся с преградой: Проверьте интернет или API ключ.";
+      });
+      debugPrint("Ошибка API: $e");
     }
-
-    setState(() {
-      _isLoading = false;
-      _result = translatedText;
-    });
   }
 
-  String _translateToLatin(String text) {
-    String cleanText = text.trim();
-    const dictionary = {
-      'привет': 'Salve', 'мир': 'Mundi', 'как дела': 'Quid agis',
-      'спасибо': 'Gratias tibi', 'добро': 'Bonum', 'утро': 'Mane',
-      'вечер': 'Vesper', 'день': 'Dies', 'ночь': 'Nox',
-      'вода': 'Aqua', 'огонь': 'Ignis', 'земля': 'Terra', 'воздух': 'Aer',
-    };
-
-    for (var entry in dictionary.entries) {
-      if (cleanText.toLowerCase().contains(entry.key)) {
-        return '${entry.value}\n\n(лат. ${entry.value})';
-      }
-    }
-    return '$cleanText in Latin:\n"${cleanText}us" (примерный перевод)';
-  }
-
-  String _translateToGreek(String text) {
-    String cleanText = text.trim();
-    const dictionary = {
-      'привет': 'Γεια σας (Yia sas)', 'мир': 'Κόσμος (Kosmos)',
-      'спасибо': 'Ευχαριστώ (Efcharistó)', 'добро': 'Αγαθό (Agathó)',
-    };
-
-    for (var entry in dictionary.entries) {
-      if (cleanText.toLowerCase().contains(entry.key)) {
-        return entry.value;
-      }
-    }
-    return 'Древнегреческий: "$cleanText" (в разработке)';
-  }
-
-  String _translateToEgyptian(String text) {
-    String cleanText = text.trim();
-    const hieroglyphs = {
-      'привет': '𓋴𓍯𓃀𓈖𓏏 (seneb)', 'жизнь': '𓋹 (ankh)',
-      'здоровье': '𓋴𓍯𓃀 (seneb)', 'сила': '𓊪𓃀𓏏 (pehty)',
-    };
-
-    for (var entry in hieroglyphs.entries) {
-      if (cleanText.toLowerCase().contains(entry.key)) {
-        return entry.value;
-      }
-    }
-    return '𓂋𓏺𓈖 𓆎𓅓𓏏𓊖\n(иероглифы в разработке)';
-  }
-
+  // Виджет быстрых подсказок (чипсы)
   Widget _buildChip(String label) {
     return GestureDetector(
       onTap: () {
@@ -132,7 +90,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, // Позволяет градиенту быть под AppBar
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -176,6 +134,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                         _buildChip('Мир'),
                         _buildChip('Жизнь'),
                         _buildChip('Спасибо'),
+                        _buildChip('Где выход?'),
                       ],
                     ),
                     
@@ -197,7 +156,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                         controller: _controller,
                         style: const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: InputDecoration(
-                          hintText: "Напиши фразу...",
+                          hintText: "Напиши фразу для оракула...",
                           hintStyle: const TextStyle(color: Colors.white38),
                           filled: true,
                           fillColor: Colors.white10,
@@ -206,14 +165,12 @@ class _TranslationScreenState extends State<TranslationScreen> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.all(20),
-                          prefixIcon: const Icon(Icons.mic, color: Color(0xFFD4AF37)),
+                          prefixIcon: const Icon(Icons.auto_fix_high, color: Color(0xFFD4AF37)),
                           suffixIcon: _controller.text.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.clear, color: Colors.white54),
                                   onPressed: () {
-                                    setState(() {
-                                      _controller.clear();
-                                    });
+                                    setState(() => _controller.clear());
                                   },
                                 )
                               : null,
@@ -226,23 +183,17 @@ class _TranslationScreenState extends State<TranslationScreen> {
                     
                     const SizedBox(height: 25),
                     
-                    // Кнопка перевода
+                    // Кнопка перевода или индикатор загрузки
                     _isLoading 
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          child: Column(
-                            children: const [
-                              CircularProgressIndicator(
-                                color: Color(0xFFD4AF37),
-                                strokeWidth: 3,
-                              ),
-                              SizedBox(height: 15),
-                              Text(
-                                "Духи древних читают...",
-                                style: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-                              ),
-                            ],
-                          ),
+                      ? const Column(
+                          children: [
+                            CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                            SizedBox(height: 15),
+                            Text(
+                              "Духи древних читают свитки...",
+                              style: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
+                            ),
+                          ],
                         )
                       : ElevatedButton(
                           onPressed: _translate,
@@ -254,22 +205,10 @@ class _TranslationScreenState extends State<TranslationScreen> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                             elevation: 10,
-                            shadowColor: const Color(0xFFD4AF37).withOpacity(0.5),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.auto_awesome, size: 24),
-                              SizedBox(width: 10),
-                              Text(
-                                "РАСШИФРОВАТЬ", 
-                                style: TextStyle(
-                                  fontSize: 18, 
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 2,
-                                )
-                              ),
-                            ],
+                          child: const Text(
+                            "РАСШИФРОВАТЬ", 
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2),
                           ),
                         ),
                     
@@ -280,18 +219,13 @@ class _TranslationScreenState extends State<TranslationScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(25),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5E6CA),
+                        color: const Color(0xFFF5E6CA), // Цвет папируса
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.3), 
                             blurRadius: 15,
                             offset: const Offset(0, 5),
-                          ),
-                          BoxShadow(
-                            color: const Color(0xFFD4AF37).withOpacity(0.1),
-                            blurRadius: 20,
-                            spreadRadius: 0,
                           ),
                         ],
                         border: Border.all(
@@ -301,8 +235,8 @@ class _TranslationScreenState extends State<TranslationScreen> {
                       ),
                       child: Column(
                         children: [
-                          Row(
-                            children: const [
+                          const Row(
+                            children: [
                               Icon(Icons.history_edu, color: Color(0xFF8B4513), size: 20),
                               SizedBox(width: 8),
                               Text(
@@ -310,7 +244,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF8B4513),
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
