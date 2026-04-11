@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
-import '/features/home/screens/home_screen.dart';
+import 'features/home/screens/home_screen.dart';
 
-void main() {
-  runApp(const AncientTranslatorApp());
-}
+void main() => runApp(const AncientOracleApp());
 
-class AncientTranslatorApp extends StatelessWidget {
-  const AncientTranslatorApp({super.key});
+// Простой контроллер для смены языка интерфейса
+ValueNotifier<bool> isRussian = ValueNotifier(false);
+
+class AncientOracleApp extends StatelessWidget {
+  const AncientOracleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Ancient Oracle AI',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFFD4AF37),
-        scaffoldBackgroundColor: Colors.transparent,
-      ),
-      home: const HomeScreen(),
+    return ValueListenableBuilder(
+      valueListenable: isRussian,
+      builder: (context, rus, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            primaryColor: const Color(0xFFD4AF37),
+            fontFamily: 'Georgia',
+          ),
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
