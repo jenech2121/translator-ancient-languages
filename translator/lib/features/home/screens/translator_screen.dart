@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../services/translation_service.dart';
+import '../../services/ocr_service.dart';
 
 class TranslatorScreen extends StatefulWidget {
   final String title;
@@ -14,13 +15,35 @@ class TranslatorScreen extends StatefulWidget {
 class _TranslatorScreenState extends State<TranslatorScreen> {
   final TextEditingController _input = TextEditingController();
   final TranslationService _service = TranslationService();
+  final OCRService _ocrService = OCRService(); // Инициализация
   
   TranslationResult? _result;
   String _error = "";
   bool _loading = false;
 
+  // Функция сканирования
+  void _scanAndTranslate() async {
+    setState(() { _loading = true; _error = ""; });
+
+    final recognized = await _ocrService.pickAndRecognizeText();
+
+    if (recognized != null && recognized.isNotEmpty) {
+      setState(() {
+        _input.text = recognized;
+      });
+      _translate(); // Сразу запускаем перевод распознанного текста
+    } else {
+      setState(() { 
+        _loading = false; 
+        _error = isRussian.value ? "Текст не распознан" : "No text recognized";
+      });
+    }
+  }
+
   void _translate() async {
+    if (_input.text.isEmpty) return;
     setState(() { _loading = true; _error = ""; _result = null; });
+    
     final res = await _service.translateText(_input.text, widget.code);
     
     setState(() {
@@ -35,19 +58,28 @@ class _TranslatorScreenState extends State<TranslatorScreen> {
 
   String _getErrorMessage(String code) {
     bool rus = isRussian.value;
-    if (code == "ERROR_INVALID_LANG") return rus ? "Ошибка: Используйте только английский или греческий!" : "Error: Use only English or Greek!";
-    if (code == "ERROR_NOT_FOUND") return rus ? "Слово не найдено в архивах." : "Word not found in archives.";
-    return rus ? "Ошибка связи." : "Connection error.";
+    if (code == "ERROR_INVALID_LANG") return rus ? "Ошибка: Только латиница!" : "Error: Latin script only!";
+    return rus ? "Ошибка связи или слово не найдено." : "Connection error or word not found.";
+  }
+
+  @override
+  void dispose() {
+    _ocrService.dispose(); // Важно!
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     bool rus = isRussian.value;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title), backgroundColor: const Color(0xFF1E1E1E)),
+      appBar: AppBar(
+        title: Text(widget.title), 
+        backgroundColor: const Color(0xFF1E1E1E),
+        actions: [
+        ],
+      ),
       body: Column(
         children: [
-          // Поле ВВОДА
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -59,15 +91,18 @@ class _TranslatorScreenState extends State<TranslatorScreen> {
                 decoration: InputDecoration(
                   hintText: rus ? "Введите текст..." : "Type text...",
                   border: InputBorder.none,
+                  // Иконка камеры внутри поля
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.camera_alt, color: Color(0xFFD4AF37)),
+                    onPressed: _scanAndTranslate,
+                  ),
                 ),
-                onChanged: (v) => setState(() {}),
               ),
             ),
           ),
           
           const Divider(color: Color(0xFFD4AF37), height: 1),
 
-          // Поле ВЫВОДА
           Expanded(
             child: Container(
               width: double.infinity,
@@ -95,7 +130,6 @@ class _TranslatorScreenState extends State<TranslatorScreen> {
             ),
           ),
           
-          // Кнопка перевода
           Container(
             padding: const EdgeInsets.all(20),
             child: ElevatedButton(
