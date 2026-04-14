@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../main.dart';
-import 'translator_screen.dart'; // Проверь, чтобы файл назывался именно так
+import '../../../../main.dart';
+import 'translator_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Слушаем изменение языка
     return ValueListenableBuilder(
       valueListenable: isRussian,
       builder: (context, rus, _) {
@@ -17,15 +16,14 @@ class HomeScreen extends StatelessWidget {
             elevation: 0,
             actions: [
               Padding(
-                padding: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.only(right: 15),
                 child: Row(
                   children: [
                     Text(rus ? "РУ" : "EN", style: const TextStyle(color: Color(0xFFD4AF37))),
                     Switch(
-                      value: rus, 
+                      value: rus,
                       onChanged: (v) => isRussian.value = v,
-                      activeColor: const Color(0xFFD4AF37), // Цвет кружка
-                      activeTrackColor: const Color(0xFFD4AF37).withAlpha(100), // Цвет полоски
+                      activeThumbColor: const Color(0xFFD4AF37),
                     ),
                   ],
                 ),
@@ -33,24 +31,20 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("🏛", style: TextStyle(fontSize: 80)),
-                const SizedBox(height: 20),
-                Text(
-                  rus ? "ДРЕВНИЙ ОРАКУЛ" : "ANCIENT ORACLE",
-                  style: const TextStyle(
-                    fontSize: 32, 
-                    fontWeight: FontWeight.bold, 
-                    color: Color(0xFFD4AF37), 
-                    letterSpacing: 4
-                  ),
-                ),
-                const SizedBox(height: 50),
-                _langBtn(context, rus ? "Древнегреческий" : "Ancient Greek", "grc"),
-                _langBtn(context, rus ? "Латынь" : "Latin", "la"),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const Text("🏛", style: TextStyle(fontSize: 80)),
+                  Text(rus ? "ДРЕВНИЙ ОРАКУЛ" : "ANCIENT ORACLE",
+                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFFD4AF37), letterSpacing: 4)),
+                  const SizedBox(height: 40),
+                  _btn(context, rus ? "Латынь" : "Latin", "la"),
+                  _btn(context, rus ? "Древнегреческий" : "Ancient Greek", "grc"),
+                  _btn(context, rus ? "Древнеегипетский" : "Egyptian", "egypt"),
+                  _btn(context, rus ? "Аккадский" : "Akkadian", "akk"),
+                  _btn(context, rus ? "Старославянский" : "Old Slavonic", "cu"),
+                ],
+              ),
             ),
           ),
         );
@@ -58,23 +52,18 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _langBtn(BuildContext context, String name, String code) {
+  Widget _btn(BuildContext context, String name, String code) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 50),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 50),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1E1E1E),
-          minimumSize: const Size(double.infinity, 70),
+          minimumSize: const Size(double.infinity, 65),
           side: const BorderSide(color: Color(0xFFD4AF37), width: 1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        onPressed: () {
-          Navigator.push(
-            context, 
-            MaterialPageRoute(builder: (c) => TranslatorScreen(title: name, code: code))
-          );
-        },
-        child: Text(name, style: const TextStyle(fontSize: 20, color: Color(0xFFD4AF37))),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => TranslatorScreen(title: name, code: code))),
+        child: Text(name, style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 18)),
       ),
     );
   }

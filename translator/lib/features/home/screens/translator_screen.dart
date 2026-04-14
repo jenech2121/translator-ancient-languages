@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../main.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../main.dart';
 import '../../services/translation_service.dart';
-import '../../services/ocr_service.dart';
 
 class TranslatorScreen extends StatefulWidget {
   final String title;
@@ -15,130 +15,87 @@ class TranslatorScreen extends StatefulWidget {
 class _TranslatorScreenState extends State<TranslatorScreen> {
   final TextEditingController _input = TextEditingController();
   final TranslationService _service = TranslationService();
-  final OCRService _ocrService = OCRService(); // Инициализация
-  
   TranslationResult? _result;
-  String _error = "";
   bool _loading = false;
-
-  // Функция сканирования
-  void _scanAndTranslate() async {
-    setState(() { _loading = true; _error = ""; });
-
-    final recognized = await _ocrService.pickAndRecognizeText();
-
-    if (recognized != null && recognized.isNotEmpty) {
-      setState(() {
-        _input.text = recognized;
-      });
-      _translate(); // Сразу запускаем перевод распознанного текста
-    } else {
-      setState(() { 
-        _loading = false; 
-        _error = isRussian.value ? "Текст не распознан" : "No text recognized";
-      });
-    }
-  }
+  String _error = "";
 
   void _translate() async {
     if (_input.text.isEmpty) return;
     setState(() { _loading = true; _error = ""; _result = null; });
-    
-    final res = await _service.translateText(_input.text, widget.code);
-    
+    final res = await _service.translateText(_input.text, widget.code, isRussian.value);
+    if (!mounted) return;
     setState(() {
       _loading = false;
-      if (res is TranslationResult) {
-        _result = res;
-      } else {
-        _error = _getErrorMessage(res.toString());
-      }
+      if (res is TranslationResult) { _result = res; } 
+      else { _error = isRussian.value ? "Ошибка оракула" : "Oracle Error"; }
     });
   }
 
-  String _getErrorMessage(String code) {
-    bool rus = isRussian.value;
-    if (code == "ERROR_INVALID_LANG") return rus ? "Ошибка: Только латиница!" : "Error: Latin script only!";
-    return rus ? "Ошибка связи или слово не найдено." : "Connection error or word not found.";
-  }
-
-  @override
-  void dispose() {
-    _ocrService.dispose(); // Важно!
-    super.dispose();
+  TextStyle _getAncientStyle() {
+    if (widget.code == 'egypt') {
+      return GoogleFonts.notoSansEgyptianHieroglyphs(fontSize: 55, color: const Color(0xFF2B1B17));
+    } else if (widget.code == 'akk') {
+      return GoogleFonts.notoSansCuneiform(fontSize: 50, color: const Color(0xFF2B1B17));
+    } else {
+      return const TextStyle(fontSize: 38, color: Color(0xFF2B1B17), fontWeight: FontWeight.bold);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     bool rus = isRussian.value;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title), 
-        backgroundColor: const Color(0xFF1E1E1E),
-        actions: [
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.title), backgroundColor: const Color(0xFF1E1E1E)),
       body: Column(
         children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              color: const Color(0xFF121212),
-              child: TextField(
-                controller: _input,
-                maxLines: null,
-                style: const TextStyle(fontSize: 24, color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: rus ? "Введите текст..." : "Type text...",
-                  border: InputBorder.none,
-                  // Иконка камеры внутри поля
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.camera_alt, color: Color(0xFFD4AF37)),
-                    onPressed: _scanAndTranslate,
-                  ),
-                ),
-              ),
+          Container(
+            padding: const EdgeInsets.all(15),
+            color: const Color(0xFF121212),
+            child: TextField(
+              controller: _input,
+              style: const TextStyle(color: Colors.white, fontSize: 20),
+              decoration: InputDecoration(hintText: rus ? "Введите слово..." : "Type word...", border: InputBorder.none),
             ),
           ),
-          
           const Divider(color: Color(0xFFD4AF37), height: 1),
-
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              color: const Color(0xFF1E1E1E),
+              padding: const EdgeInsets.all(25),
+              color: const Color(0xFFF5E6CA),
               child: _loading 
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+                ? const Center(child: CircularProgressIndicator(color: Colors.brown))
                 : SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_error.isNotEmpty) Text(_error, style: const TextStyle(color: Colors.redAccent, fontSize: 18)),
+                        if (_error.isNotEmpty) Text(_error, style: const TextStyle(color: Colors.red)),
                         if (_result != null) ...[
-                          SelectableText(_result!.primary, style: const TextStyle(fontSize: 40, color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 10),
-                          Text(_result!.definition, style: const TextStyle(color: Colors.white70, fontSize: 16, fontStyle: FontStyle.italic)),
-                          const Divider(height: 40, color: Colors.white24),
-                          Text(rus ? "БИБЛИОТЕКА ВАРИАНТОВ:" : "LIBRARY OF VARIANTS:", style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 14)),
-                          const SizedBox(height: 10),
-                          ..._result!.alternatives.map((a) => SelectableText(a, style: const TextStyle(fontSize: 20, height: 1.8))),
+                          SelectableText(_result!.word, style: _getAncientStyle()),
+                          Text(_result!.transcription, style: const TextStyle(fontSize: 22, color: Colors.brown, fontStyle: FontStyle.italic)),
+                          const SizedBox(height: 30),
+                          Text(rus ? "ВАРИАНТЫ:" : "VARIANTS:", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+                          const Divider(color: Colors.black26),
+                          ..._result!.synonyms.map((s) => Text("• $s", style: const TextStyle(fontSize: 18, color: Colors.black87))),
+                          const SizedBox(height: 30),
+                          Text(rus ? "ПРИМЕРЫ:" : "EXAMPLES:", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+                          const Divider(color: Colors.black26),
+                          ..._result!.examples.map((e) => Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(e, style: const TextStyle(fontSize: 16, color: Color(0xFF4E342E), height: 1.4)),
+                          )),
                         ]
                       ],
                     ),
                   ),
             ),
           ),
-          
-          Container(
+          Padding(
             padding: const EdgeInsets.all(20),
             child: ElevatedButton(
-              onPressed: _input.text.isEmpty ? null : _translate,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
-                minimumSize: const Size(double.infinity, 60),
-              ),
-              child: Text(rus ? "ПЕРЕВЕСТИ" : "TRANSLATE", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              onPressed: _translate,
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD4AF37), minimumSize: const Size(double.infinity, 60)),
+              child: Text(rus ? "РАСШИФРОВАТЬ" : "DECODE", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
             ),
           )
         ],

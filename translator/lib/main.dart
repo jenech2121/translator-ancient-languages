@@ -3,8 +3,8 @@ import 'features/home/screens/home_screen.dart';
 
 void main() => runApp(const AncientOracleApp());
 
-// Простой контроллер для смены языка интерфейса
-ValueNotifier<bool> isRussian = ValueNotifier(false);
+// Глобальный контроллер языка (РУ/EN)
+ValueNotifier<bool> isRussian = ValueNotifier(true);
 
 class AncientOracleApp extends StatelessWidget {
   const AncientOracleApp({super.key});
